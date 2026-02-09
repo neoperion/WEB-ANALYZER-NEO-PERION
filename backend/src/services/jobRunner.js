@@ -40,29 +40,52 @@ async function runAnalysisJob(url, options = {}, progressCallback = null) {
       timeout: options.timeout || 45000
     });
 
-    updateProgress('running', 30, 'Scraping completed, analyzing performance...');
+    updateProgress('running', 30, 'Scraping completed, analyzing modules...');
 
     // ============================================
-    // Step 2: Run all modules in parallel
+    // Step 2: Run modules based on options.modules
     // ============================================
-    const [performanceResult, uxResult, seoResult, contentResult] = await Promise.all([
-      performanceModule.analyze(artifact),
-      uxModule.analyze(artifact),
-      seoModule.analyze(artifact),
-      contentModule.analyze(artifact)
-    ]);
+    const modulesToRun = options.modules || ['seo', 'performance', 'ux', 'content'];
+    const modulePromises = [];
+    const moduleResults = {};
+
+    if (modulesToRun.includes('performance')) {
+      modulePromises.push(
+        performanceModule.analyze(artifact).then(result => {
+          moduleResults.performance = result;
+        })
+      );
+    }
+    if (modulesToRun.includes('ux')) {
+      modulePromises.push(
+        uxModule.analyze(artifact).then(result => {
+          moduleResults.ux = result;
+        })
+      );
+    }
+    if (modulesToRun.includes('seo')) {
+      modulePromises.push(
+        seoModule.analyze(artifact).then(result => {
+          moduleResults.seo = result;
+        })
+      );
+    }
+    if (modulesToRun.includes('content')) {
+      modulePromises.push(
+        contentModule.analyze(artifact).then(result => {
+          moduleResults.content = result;
+        })
+      );
+    }
+
+    await Promise.all(modulePromises);
 
     updateProgress('running', 70, 'Module analysis completed, aggregating results...');
 
     // ============================================
     // Step 3: Aggregate results
     // ============================================
-    const aggregatorResult = aggregate({
-      performance: performanceResult,
-      ux: uxResult,
-      seo: seoResult,
-      content: contentResult
-    });
+    const aggregatorResult = aggregate(moduleResults);
 
     updateProgress('running', 85, 'Saving report to database...');
 
@@ -92,12 +115,7 @@ async function runAnalysisJob(url, options = {}, progressCallback = null) {
       },
       
       // Module results
-      modules: {
-        performance: performanceResult,
-        ux: uxResult,
-        seo: seoResult,
-        content: contentResult
-      },
+      modules: moduleResults,
       
       // Aggregated results
       aggregator: aggregatorResult,
