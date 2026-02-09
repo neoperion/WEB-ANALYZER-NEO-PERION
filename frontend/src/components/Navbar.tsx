@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, ChevronDown, MessageSquare } from 'lucide-react';
+import { User, MessageSquare } from 'lucide-react';
 import './Navbar.css';
 
 interface DropdownItem {
@@ -15,6 +15,11 @@ interface NavDropdown {
 }
 
 const dropdownMenus: NavDropdown[] = [
+    {
+        label: 'Overall Dashboard',
+        icon: '📊',
+        items: [],
+    },
     {
         label: 'Performance',
         icon: '⚡',
@@ -54,24 +59,29 @@ const dropdownMenus: NavDropdown[] = [
 ];
 
 export function Navbar() {
-    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const navRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
     const isHome = location.pathname === '/';
 
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (navRef.current && !navRef.current.contains(e.target as Node)) {
-                setOpenDropdown(null);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    // Get reportId from URL if on dashboard page
+    const reportId = location.pathname.match(/\/dashboard\/([^\/]+)/)?.[1];
 
-    const toggleDropdown = (label: string) => {
-        setOpenDropdown(prev => (prev === label ? null : label));
+    const handleNavClick = (label: string) => {
+        // For now, Overall Dashboard is the main view
+        // Other buttons can be used for visual indication
+        if (label === 'Overall Dashboard' && reportId) {
+            // Already on the overall dashboard view
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    const isActive = (label: string) => {
+        // Overall Dashboard is active when on /dashboard/:id (no specific module)
+        if (label === 'Overall Dashboard') {
+            return location.pathname === `/dashboard/${reportId}`;
+        }
+        return false;
     };
 
     return (
@@ -82,10 +92,10 @@ export function Navbar() {
                     <Link to="/" className="logo">
                         <span className="logo-icon">
                             <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="logo-svg">
-                                <rect width="36" height="36" rx="8" fill="#aee92b"/>
-                                <path d="M10 26L18 10L26 26" stroke="#0a0a0f" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
-                                <circle cx="18" cy="16.5" r="2.2" fill="#0a0a0f"/>
-                                <path d="M13 22H23" stroke="#0a0a0f" strokeWidth="2.2" strokeLinecap="round"/>
+                                <rect width="36" height="36" rx="8" fill="#aee92b" />
+                                <path d="M10 26L18 10L26 26" stroke="#0a0a0f" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                                <circle cx="18" cy="16.5" r="2.2" fill="#0a0a0f" />
+                                <path d="M13 22H23" stroke="#0a0a0f" strokeWidth="2.2" strokeLinecap="round" />
                             </svg>
                         </span>
                         <span className="logo-text">
@@ -99,7 +109,7 @@ export function Navbar() {
                     <div className="header-right">
                         <Link to="/signin" className="signin-link">
                             <User size={20} />
-                            <span>Sign In</span>
+                            <span>Neo Perion</span>
                         </Link>
                         {/* Mobile hamburger */}
                         {!isHome && (
@@ -120,54 +130,32 @@ export function Navbar() {
                 <>
                     <div className="header-divider" />
                     <nav className={`header-nav ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-                <div className="container header-nav-inner">
-                    <div className="nav-items">
-                        {/* Dropdown nav items */}
-                        {dropdownMenus.map(menu => (
-                            <div className="nav-dropdown-wrapper" key={menu.label}>
-                                <button
-                                    className={`nav-item nav-item-dropdown ${openDropdown === menu.label ? 'active' : ''}`}
-                                    onClick={() => toggleDropdown(menu.label)}
-                                >
-                                    <span className="nav-item-icon">{menu.icon}</span>
-                                    <span>{menu.label}</span>
-                                    <ChevronDown
-                                        size={14}
-                                        className={`chevron ${openDropdown === menu.label ? 'rotated' : ''}`}
-                                    />
-                                </button>
-                                {openDropdown === menu.label && (
-                                    <div className="dropdown-menu">
-                                        {menu.items.map(item => (
-                                            <Link
-                                                key={item.href}
-                                                to={item.href}
-                                                className="dropdown-item"
-                                                onClick={() => {
-                                                    setOpenDropdown(null);
-                                                    setMobileMenuOpen(false);
-                                                }}
-                                            >
-                                                {item.label}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                )}
+                        <div className="container header-nav-inner">
+                            <div className="nav-items">
+                                {/* Simple nav items */}
+                                {dropdownMenus.map(menu => (
+                                    <button
+                                        key={menu.label}
+                                        className={`nav-item ${isActive(menu.label) ? 'active' : ''}`}
+                                        onClick={() => handleNavClick(menu.label)}
+                                    >
+                                        <span className="nav-item-icon">{menu.icon}</span>
+                                        <span>{menu.label}</span>
+                                    </button>
+                                ))}
                             </div>
-                        ))}
-                    </div>
 
-                    {/* Contact Us button */}
-                    <Link
-                        to="/contact"
-                        className="contact-btn"
-                        onClick={() => setMobileMenuOpen(false)}
-                    >
-                        <MessageSquare size={16} />
-                        <span>Contact Us</span>
-                    </Link>
-                </div>
-            </nav>
+                            {/* Contact Us button */}
+                            <Link
+                                to="/contact"
+                                className="contact-btn"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                <MessageSquare size={16} />
+                                <span>Contact Us</span>
+                            </Link>
+                        </div>
+                    </nav>
                 </>
             )}
         </header>
